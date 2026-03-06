@@ -5,7 +5,7 @@ get_instance_vars() {
     echo "--------------------------------"
     read -p "请输入项目 ID (PROJECT): " PROJECT
     read -p "请输入可用区 (ZONE, 例如 us-west1-b): " ZONE
-    read -p "请输入实例名称 (NAME, 例如 free-tier-vm): " NAME
+    read -p "请输入实例名称 (NAME, 例如 us-free): " NAME
     echo "--------------------------------"
 }
 
