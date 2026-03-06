@@ -48,7 +48,7 @@ func_setup_firewall() {
         --network=default \
         --action=ALLOW \
         --rules=all \
-        --destination-ranges=0.0.0.0/0 [cite: 2]
+        --destination-ranges=0.0.0.0/0
         
     echo -e ">>> 防火墙规则设置完成！\n"
 }
