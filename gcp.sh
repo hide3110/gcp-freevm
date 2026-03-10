@@ -53,7 +53,8 @@ select_existing_vm() {
     while read -r name zone; do
         names+=("$name")
         zones+=("$zone")
-        echo "  [$i] 实例名: \033[96m$name\033[0m (可用区: $zone)"
+        # 修复了这里：加上了 -e 参数，让颜色代码生效
+        echo -e "  [$i] 实例名: \033[96m$name\033[0m (可用区: $zone)"
         ((i++))
     done <<< "$instances_data"
     echo "  [0] 取消操作并返回主菜单"
@@ -215,13 +216,11 @@ func_view_vm() {
     echo -e "==========================================================\n"
 }
 
-# 功能6：删除实例
+# 功能6：删除实例 (移至最后)
 func_delete_vm() {
     echo -e "\n>>> \033[91m[警告] 准备执行删除实例操作...\033[0m"
-    # 呼叫选择菜单，如果用户取消或无实例，则中断退出
     if ! select_existing_vm; then return; fi
     
-    # 再次增加防误删确认
     read -p "确定要彻底删除实例 [$NAME] 吗？(y/N): " CONFIRM
     if [[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]]; then
         echo "已取消删除。"
@@ -243,10 +242,10 @@ while true; do
     echo "===================================="
     echo "  1. 创建免费机"
     echo "  2. 设置防火墙规则 (入站/出站全开)"
-    echo "  3. 更换系统镜像源 (Debian 12 专用)"
+    echo "  3. 更换系统镜像源 (Debian 12 专用, 建议先执行)"
     echo "  4. 一键配置 SSH (Root密码登录/改端口56013, 建议最后执行)"
     echo "  5. 查看账号下所有实例信息"
-    echo "  6. 删除实例"
+    echo "  6. 删除实例 (危险操作)"
     echo "  0. 退出脚本"
     echo "===================================="
     read -p "请输入对应的数字 [0-6]: " choice
