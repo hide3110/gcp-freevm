@@ -13,7 +13,7 @@ auto_get_project() {
     fi
 }
 
-# 获取实例相关变量的函数
+# 获取实例相关变量的函数 (仅用于创建、删除、改源、配置SSH)
 get_instance_vars() {
     echo "===================================="
     # 调用自动获取项目函数
@@ -113,7 +113,6 @@ func_change_apt_source() {
     echo "-> 正在通过 gcloud 连接并下发更新源命令..."
     echo "-> 更新过程可能需要几十秒，请耐心等待..."
     
-    # 核心逻辑：使用 sudo bash -c 将多行文本作为单个远程命令执行
     gcloud compute ssh $NAME \
         --project=$PROJECT \
         --zone=$ZONE \
@@ -145,7 +144,6 @@ func_setup_ssh() {
     get_instance_vars
     
     echo "===================================="
-    # 隐藏输入密码并做二次确认
     while true; do
         read -s -p "请设置新的 Root 密码 (输入时不可见): " ROOT_PASS
         echo
@@ -187,39 +185,23 @@ func_setup_ssh() {
     echo -e "\n"
 }
 
-# 功能6：查看实例详细信息
+# 功能6：全局查看当前项目下所有实例信息
 func_view_vm() {
-    echo -e "\n>>> 准备获取实例信息..."
-    get_instance_vars
+    echo -e "\n>>> 准备扫描当前项目下的所有实例信息..."
+    auto_get_project
+    echo "------------------------------------"
+    echo "-> 正在向 GCP 请求全局数据，请稍候..."
+    echo -e "\n\033[92m【 实例详细信息列表 】\033[0m"
     
-    echo "-> 正在向 GCP 请求数据，请稍候..."
-    
-    # 检查实例是否存在
-    VM_STATUS=$(gcloud compute instances describe $NAME --project=$PROJECT --zone=$ZONE --format="value(status)" 2>/dev/null)
-    
-    if [ -z "$VM_STATUS" ]; then
-        echo -e "\033[93m[错误] 找不到实例 '$NAME'，请检查名称和可用区是否正确。\033[0m\n"
-        return
-    fi
-
-    # 获取底层系统镜像名称 (提取类似 debian-12-bookworm 的字段)
-    OS_INFO=$(gcloud compute instances describe $NAME --project=$PROJECT --zone=$ZONE --format="value(disks[0].licenses[0].basename())" 2>/dev/null)
-    
-    echo -e "\n\033[92m【 实例详细信息 】\033[0m"
-    echo "=========================================================="
-    echo -e " 项目 (PROJECT) : \033[96m$PROJECT\033[0m"
-    echo -e " 操作系统 (OS)  : \033[96m${OS_INFO:-未知系统}\033[0m"
-    echo "----------------------------------------------------------"
-    
-    # 使用 table 格式化输出核心网络与硬件数据
-    gcloud compute instances describe $NAME \
+    # 核心修改点：使用 list 取代 describe，直接全局抓取，不需要手动输入区域和名称
+    gcloud compute instances list \
         --project=$PROJECT \
-        --zone=$ZONE \
         --format="table(
             name:label=实例名称(NAME),
             zone.basename():label=可用区(ZONE),
             networkInterfaces[0].accessConfigs[0].natIP:label=外部_IP,
             disks[0].diskSizeGb:label=磁盘(GB),
+            disks[0].licenses[0].basename():label=系统镜像,
             status:label=运行状态
         )"
     echo -e "==========================================================\n"
@@ -235,7 +217,7 @@ while true; do
     echo "  3. 删除实例"
     echo "  4. 更换系统镜像源 (Debian 12 专用)"
     echo "  5. 一键配置 SSH (Root密码登录/改端口56013, 建议最后执行)"
-    echo "  6. 查看实例详细信息"
+    echo "  6. 查看账号下所有实例信息"
     echo "  0. 退出脚本"
     echo "===================================="
     read -p "请输入对应的数字 [0-6]: " choice
