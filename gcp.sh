@@ -105,7 +105,7 @@ func_delete_vm() {
     echo -e ">>> 实例 $NAME 已彻底删除！\n"
 }
 
-# 功能4：更换 Debian 12 镜像源 (提到了前面)
+# 功能4：更换 Debian 12 镜像源
 func_change_apt_source() {
     echo -e "\n>>> 准备更换 Debian 12 镜像源..."
     get_instance_vars
@@ -139,7 +139,7 @@ EOF'"
     echo -e "\n"
 }
 
-# 功能5：一键配置 SSH (移到了最后)
+# 功能5：一键配置 SSH
 func_setup_ssh() {
     echo -e "\n>>> 准备配置 SSH 环境..."
     get_instance_vars
@@ -164,6 +164,12 @@ func_setup_ssh() {
     echo "------------------------------------"
     echo "-> 正在通过 gcloud 连接并下发配置命令..."
     
+    gcloud compute instances describe $NAME --project=$PROJECT --zone=$ZONE --format="value(status)" >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo -e "\033[93m[错误] 实例 $NAME 不存在或未运行，请先创建实例！\033[0m"
+        return
+    fi
+    
     gcloud compute ssh $NAME \
         --project=$PROJECT \
         --zone=$ZONE \
@@ -176,9 +182,47 @@ func_setup_ssh() {
         echo -e "    - 密  码: \033[96m(你刚才设置的密码)\033[0m"
         echo -e "    - 端  口: \033[96m56013\033[0m"
     else
-        echo -e "\033[93m>>> SSH 配置过程中可能出现错误，请检查实例是否处于运行状态。\033[0m"
+        echo -e "\033[93m>>> SSH 配置过程中可能出现错误，请检查网络连接。\033[0m"
     fi
     echo -e "\n"
+}
+
+# 功能6：查看实例详细信息
+func_view_vm() {
+    echo -e "\n>>> 准备获取实例信息..."
+    get_instance_vars
+    
+    echo "-> 正在向 GCP 请求数据，请稍候..."
+    
+    # 检查实例是否存在
+    VM_STATUS=$(gcloud compute instances describe $NAME --project=$PROJECT --zone=$ZONE --format="value(status)" 2>/dev/null)
+    
+    if [ -z "$VM_STATUS" ]; then
+        echo -e "\033[93m[错误] 找不到实例 '$NAME'，请检查名称和可用区是否正确。\033[0m\n"
+        return
+    fi
+
+    # 获取底层系统镜像名称 (提取类似 debian-12-bookworm 的字段)
+    OS_INFO=$(gcloud compute instances describe $NAME --project=$PROJECT --zone=$ZONE --format="value(disks[0].licenses[0].basename())" 2>/dev/null)
+    
+    echo -e "\n\033[92m【 实例详细信息 】\033[0m"
+    echo "=========================================================="
+    echo -e " 项目 (PROJECT) : \033[96m$PROJECT\033[0m"
+    echo -e " 操作系统 (OS)  : \033[96m${OS_INFO:-未知系统}\033[0m"
+    echo "----------------------------------------------------------"
+    
+    # 使用 table 格式化输出核心网络与硬件数据
+    gcloud compute instances describe $NAME \
+        --project=$PROJECT \
+        --zone=$ZONE \
+        --format="table(
+            name:label=实例名称(NAME),
+            zone.basename():label=可用区(ZONE),
+            networkInterfaces[0].accessConfigs[0].natIP:label=外部_IP,
+            disks[0].diskSizeGb:label=磁盘(GB),
+            status:label=运行状态
+        )"
+    echo -e "==========================================================\n"
 }
 
 # 主菜单循环
@@ -190,10 +234,11 @@ while true; do
     echo "  2. 设置防火墙规则 (入站/出站全开)"
     echo "  3. 删除实例"
     echo "  4. 更换系统镜像源 (Debian 12 专用)"
-    echo "  5. 一键配置 SSH"
+    echo "  5. 一键配置 SSH (Root密码登录/改端口56013, 建议最后执行)"
+    echo "  6. 查看实例详细信息"
     echo "  0. 退出脚本"
     echo "===================================="
-    read -p "请输入对应的数字 [0-5]: " choice
+    read -p "请输入对应的数字 [0-6]: " choice
 
     case $choice in
         1) func_create_vm ;;
@@ -201,6 +246,7 @@ while true; do
         3) func_delete_vm ;;
         4) func_change_apt_source ;;
         5) func_setup_ssh ;;
+        6) func_view_vm ;;
         0) echo "已退出。"; exit 0 ;;
         *) echo -e "\n[错误] 无效的选项，请重新输入！\n" ;;
     esac
