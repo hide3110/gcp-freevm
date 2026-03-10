@@ -13,7 +13,7 @@ auto_get_project() {
     fi
 }
 
-# 获取实例相关变量的函数 (仅用于创建、删除、改源、配置SSH)
+# 获取实例相关变量的函数
 get_instance_vars() {
     echo "===================================="
     # 调用自动获取项目函数
@@ -193,17 +193,11 @@ func_view_vm() {
     echo "-> 正在向 GCP 请求全局数据，请稍候..."
     echo -e "\n\033[92m【 实例详细信息列表 】\033[0m"
     
-    # 核心修改点：使用 list 取代 describe，直接全局抓取，不需要手动输入区域和名称
+    # 核心修改点：将 table 格式化字符串压缩为单行，并去除中文后的括号以防止解析错误
     gcloud compute instances list \
         --project=$PROJECT \
-        --format="table(
-            name:label=实例名称(NAME),
-            zone.basename():label=可用区(ZONE),
-            networkInterfaces[0].accessConfigs[0].natIP:label=外部_IP,
-            disks[0].diskSizeGb:label=磁盘(GB),
-            disks[0].licenses[0].basename():label=系统镜像,
-            status:label=运行状态
-        )"
+        --format="table(name:label=实例名称,zone.basename():label=可用区,networkInterfaces[0].accessConfigs[0].natIP:label=公网IP,disks[0].diskSizeGb:label=磁盘GB,disks[0].licenses[0].basename():label=系统,status:label=状态)"
+        
     echo -e "==========================================================\n"
 }
 
