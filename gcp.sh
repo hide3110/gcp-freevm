@@ -53,7 +53,6 @@ select_existing_vm() {
     while read -r name zone; do
         names+=("$name")
         zones+=("$zone")
-        # 修复了这里：加上了 -e 参数，让颜色代码生效
         echo -e "  [$i] 实例名: \033[96m$name\033[0m (可用区: $zone)"
         ((i++))
     done <<< "$instances_data"
@@ -97,7 +96,21 @@ func_create_vm() {
     echo -e ">>> 实例 $NAME 创建流程结束！\n"
 }
 
-# 功能2：设置防火墙规则
+# 功能2：查看防火墙规则 (新增)
+func_view_firewall() {
+    echo -e "\n>>> 准备获取当前项目的防火墙规则..."
+    auto_get_project
+    echo "------------------------------------"
+    echo "-> 正在向 GCP 请求防火墙数据，请稍候..."
+    echo -e "\n\033[92m【 防火墙规则列表 】\033[0m"
+    
+    # 默认的 list 输出已经非常清晰，包含了名字、网络、方向、优先级和允许的端口
+    gcloud compute firewall-rules list --project=$PROJECT
+    
+    echo -e "==========================================================\n"
+}
+
+# 功能3：设置防火墙规则
 func_setup_firewall() {
     echo -e "\n>>> 准备设置防火墙规则..."
     echo "===================================="
@@ -112,7 +125,7 @@ func_setup_firewall() {
         --network=default \
         --action=ALLOW \
         --rules=all \
-        --source-ranges=0.0.0.0/0 2>/dev/null || echo "(入站规则可能已存在)"
+        --source-ranges=0.0.0.0/0 2>/dev/null || echo "(入站规则 v4in 可能已存在)"
 
     echo "-> 正在创建出站规则 (v4out)..."
     gcloud compute firewall-rules create v4out \
@@ -122,12 +135,12 @@ func_setup_firewall() {
         --network=default \
         --action=ALLOW \
         --rules=all \
-        --destination-ranges=0.0.0.0/0 2>/dev/null || echo "(出站规则可能已存在)"
+        --destination-ranges=0.0.0.0/0 2>/dev/null || echo "(出站规则 v4out 可能已存在)"
         
     echo -e ">>> 防火墙规则设置完成！\n"
 }
 
-# 功能3：更换 Debian 12 镜像源
+# 功能4：更换 Debian 12 镜像源
 func_change_apt_source() {
     echo -e "\n>>> 准备更换 Debian 12 镜像源..."
     if ! select_existing_vm; then return; fi
@@ -160,7 +173,7 @@ EOF'"
     echo -e "\n"
 }
 
-# 功能4：一键配置 SSH
+# 功能5：一键配置 SSH
 func_setup_ssh() {
     echo -e "\n>>> 准备配置 SSH 环境..."
     if ! select_existing_vm; then return; fi
@@ -201,7 +214,7 @@ func_setup_ssh() {
     echo -e "\n"
 }
 
-# 功能5：全局查看当前项目下所有实例信息
+# 功能6：全局查看当前项目下所有实例信息
 func_view_vm() {
     echo -e "\n>>> 准备扫描当前项目下的所有实例信息..."
     auto_get_project
@@ -216,7 +229,7 @@ func_view_vm() {
     echo -e "==========================================================\n"
 }
 
-# 功能6：删除实例 (移至最后)
+# 功能7：删除实例
 func_delete_vm() {
     echo -e "\n>>> \033[91m[警告] 准备执行删除实例操作...\033[0m"
     if ! select_existing_vm; then return; fi
@@ -241,22 +254,24 @@ while true; do
     echo "        GCP 实例快捷管理脚本        "
     echo "===================================="
     echo "  1. 创建免费机"
-    echo "  2. 设置防火墙规则 (入站/出站全开)"
-    echo "  3. 更换系统镜像源 (Debian 12 专用, 建议先执行)"
-    echo "  4. 一键配置 SSH (Root密码登录/改端口56013, 建议最后执行)"
-    echo "  5. 查看账号下所有实例信息"
-    echo "  6. 删除实例 (危险操作)"
+    echo "  2. 查看防火墙规则"
+    echo "  3. 设置防火墙规则 (入站/出站全开)"
+    echo "  4. 更换系统镜像源 (Debian 12 专用)"
+    echo "  5. 一键配置 SSH (Root密码登录/改端口56013)"
+    echo "  6. 查看账号下所有实例信息"
+    echo "  7. 删除实例 (危险操作)"
     echo "  0. 退出脚本"
     echo "===================================="
-    read -p "请输入对应的数字 [0-6]: " choice
+    read -p "请输入对应的数字 [0-7]: " choice
 
     case $choice in
         1) func_create_vm ;;
-        2) func_setup_firewall ;;
-        3) func_change_apt_source ;;
-        4) func_setup_ssh ;;
-        5) func_view_vm ;;
-        6) func_delete_vm ;;
+        2) func_view_firewall ;;
+        3) func_setup_firewall ;;
+        4) func_change_apt_source ;;
+        5) func_setup_ssh ;;
+        6) func_view_vm ;;
+        7) func_delete_vm ;;
         0) echo "已退出。"; exit 0 ;;
         *) echo -e "\n[错误] 无效的选项，请重新输入！\n" ;;
     esac
