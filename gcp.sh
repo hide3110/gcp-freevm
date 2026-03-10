@@ -105,7 +105,41 @@ func_delete_vm() {
     echo -e ">>> 实例 $NAME 已彻底删除！\n"
 }
 
-# 功能4：一键配置 SSH (开启 Root、密码登录、改端口)
+# 功能4：更换 Debian 12 镜像源 (提到了前面)
+func_change_apt_source() {
+    echo -e "\n>>> 准备更换 Debian 12 镜像源..."
+    get_instance_vars
+    
+    echo "-> 正在通过 gcloud 连接并下发更新源命令..."
+    echo "-> 更新过程可能需要几十秒，请耐心等待..."
+    
+    # 核心逻辑：使用 sudo bash -c 将多行文本作为单个远程命令执行
+    gcloud compute ssh $NAME \
+        --project=$PROJECT \
+        --zone=$ZONE \
+        --command="sudo bash -c 'cat > /etc/apt/sources.list.d/debian.sources <<EOF && rm -rf /var/lib/apt/lists/* && apt update
+Types: deb deb-src
+URIs: http://mirrors.mit.edu/debian
+Suites: bookworm bookworm-updates bookworm-backports
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb deb-src
+URIs: http://mirrors.ocf.berkeley.edu/debian-security
+Suites: bookworm-security
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF'"
+
+    if [ $? -eq 0 ]; then
+        echo -e "\033[92m>>> Debian 12 镜像源已成功更换为 MIT/Berkeley 节点并刷新！\033[0m"
+    else
+        echo -e "\033[93m>>> 镜像源更换出现错误，请检查实例状态或网络连接。\033[0m"
+    fi
+    echo -e "\n"
+}
+
+# 功能5：一键配置 SSH (移到了最后)
 func_setup_ssh() {
     echo -e "\n>>> 准备配置 SSH 环境..."
     get_instance_vars
@@ -147,40 +181,6 @@ func_setup_ssh() {
     echo -e "\n"
 }
 
-# 功能5：更换 Debian 12 镜像源
-func_change_apt_source() {
-    echo -e "\n>>> 准备更换 Debian 12 镜像源..."
-    get_instance_vars
-    
-    echo "-> 正在通过 gcloud 连接并下发更新源命令..."
-    echo "-> 更新过程可能需要几十秒，请耐心等待..."
-    
-    # 核心逻辑：使用 sudo bash -c 将多行文本作为单个远程命令执行
-    gcloud compute ssh $NAME \
-        --project=$PROJECT \
-        --zone=$ZONE \
-        --command="sudo bash -c 'cat > /etc/apt/sources.list.d/debian.sources <<EOF && rm -rf /var/lib/apt/lists/* && apt update
-Types: deb deb-src
-URIs: http://mirrors.mit.edu/debian
-Suites: bookworm bookworm-updates bookworm-backports
-Components: main
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-
-Types: deb deb-src
-URIs: http://mirrors.ocf.berkeley.edu/debian-security
-Suites: bookworm-security
-Components: main
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-EOF'"
-
-    if [ $? -eq 0 ]; then
-        echo -e "\033[92m>>> Debian 12 镜像源已成功更换为 MIT/Berkeley 节点并刷新！\033[0m"
-    else
-        echo -e "\033[93m>>> 镜像源更换出现错误，请检查实例状态或网络连接。\033[0m"
-    fi
-    echo -e "\n"
-}
-
 # 主菜单循环
 while true; do
     echo "===================================="
@@ -189,8 +189,8 @@ while true; do
     echo "  1. 创建免费机"
     echo "  2. 设置防火墙规则 (入站/出站全开)"
     echo "  3. 删除实例"
-    echo "  4. 一键配置 SSH (Root密码登录/改端口56013)"
-    echo "  5. 更换系统镜像源 (Debian 12 专用)"
+    echo "  4. 更换系统镜像源 (Debian 12 专用)"
+    echo "  5. 一键配置 SSH"
     echo "  0. 退出脚本"
     echo "===================================="
     read -p "请输入对应的数字 [0-5]: " choice
@@ -199,8 +199,8 @@ while true; do
         1) func_create_vm ;;
         2) func_setup_firewall ;;
         3) func_delete_vm ;;
-        4) func_setup_ssh ;;
-        5) func_change_apt_source ;;
+        4) func_change_apt_source ;;
+        5) func_setup_ssh ;;
         0) echo "已退出。"; exit 0 ;;
         *) echo -e "\n[错误] 无效的选项，请重新输入！\n" ;;
     esac
