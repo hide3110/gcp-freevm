@@ -200,7 +200,7 @@ func_setup_ssh() {
     gcloud compute ssh $NAME \
         --project=$PROJECT \
         --zone=$ZONE \
-        --command="sudo sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/g' /etc/ssh/sshd_config && sudo sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g' /etc/ssh/sshd_config && sudo sed -i 's/^#\?Port.*/Port 56013/g' /etc/ssh/sshd_config && echo \"root:${ROOT_PASS}\" | sudo chpasswd && sudo systemctl restart ssh"
+        --command="sudo sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/g' /etc/ssh/sshd_config && sudo sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g' /etc/ssh/sshd_config && sudo sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config && sudo sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config.d/*.conf 2>/dev/null || true && sudo sed -i 's/^#\?Port.*/Port 56013/g' /etc/ssh/sshd_config && echo \"root:${ROOT_PASS}\" | sudo chpasswd && sudo systemctl restart ssh"
     
     if [ $? -eq 0 ]; then
         echo -e "\033[92m>>> SSH 配置成功！\033[0m"
