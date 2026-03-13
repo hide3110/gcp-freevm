@@ -392,7 +392,7 @@ func_create_vm() {
         --machine-type="$DEFAULT_MACHINE_TYPE" \
         --network-interface=network=default,network-tier=STANDARD \
         --boot-disk-size="$DEFAULT_DISK_SIZE" \
-        --boot-disk-type=pd-standard" \
+        --boot-disk-type=pd-standard \
         --image-project="$DEFAULT_IMAGE_PROJECT" \
         --image-family="$DEFAULT_IMAGE_FAMILY"
 
