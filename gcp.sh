@@ -8,7 +8,7 @@ set -u
 
 # ---------- 默认变量 ----------
 DEFAULT_VPC_NAME="default"
-DEFAULT_VM_NAME="hide217"
+DEFAULT_VM_NAME="us-free"
 DEFAULT_MACHINE_TYPE="e2-micro"
 DEFAULT_DISK_SIZE="30GB"
 DEFAULT_IMAGE_PROJECT="debian-cloud"
